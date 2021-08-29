@@ -102,9 +102,7 @@ def main(args):
                                     _data[1][1].shape,
                                     validation_generator.__len__()))
 
-    #model = get_model('plain_Conv2D', n_classes, n_slots, audio_params)
-    #model = get_model('DW_Conv2D', n_classes, n_slots, audio_params) 
-    model = get_model('res_Conv2D', n_classes, n_slots, audio_params)
+    model = get_model(args.model_type, n_classes, n_slots, audio_params)
 
     optim = Adam(learning_rate=args.lr)
 
@@ -145,62 +143,68 @@ if __name__ == "__main__":
         '-t',
         '--train_dataset_path',
         default="data/csv/train_data.csv",
-        help='path to configuration file')
+        help='path to train data .csv file')
 
     argparser.add_argument(
         '-v',
         '--valid_dataset_path',
         default="data/csv/valid_data.csv",
-        help='path to configuration file')
+        help='path to validation data .csv file')
+
+    argparser.add_argument(
+        '-t',
+        '--model_type',
+        default="plain_Conv2D",
+        help='type of model to train: plain_Conv2D, DW_Conv2D, res_Conv2D')
 
     argparser.add_argument(
         '-b',
         '--batch_size',
         default=32,
-        help='path to configuration file')
+        help='Batch size for training and validation')
 
     argparser.add_argument(
         '-l',
         '--lr',
         default=1e-3,
-        help='path to configuration file')
+        help='Initial learning rate')
 
     argparser.add_argument(
         '-e',
         '--epochs',
         default=10,
-        help='path to configuration file')
+        help='Number of epochs to train')
 
     argparser.add_argument(
         '-d',
         '--generate_data',
         default=False,
-        help='path to configuration file')
+        help='Whether or not to re-generate intents and slots data')
 
     argparser.add_argument(
         '--sampling_rate',
         default=16000,
-        help='path to configuration file')
+        help='Audio sampling rate')
 
     argparser.add_argument(
         '--min_freq',
         default=100,
-        help='path to configuration file')
+        help='Spectrogram minimum frequency')
 
     argparser.add_argument(
         '--max_freq',
         default=8000,
-        help='path to configuration file')        
+        help='Spectrogram maximum frequency')        
 
     argparser.add_argument(
         '--win_size_ms',
         default=0.02,
-        help='path to configuration file') 
+        help='Spectrogram window size') 
 
     argparser.add_argument(
         '--num_cepstral',
         default=10,
-        help='path to configuration file') 
+        help='Number of MFCC cepstral coefficients') 
 
     args = argparser.parse_args()
     main(args)

@@ -11,7 +11,7 @@ from tensorflow.keras.layers import MaxPooling2D, AveragePooling2D
 from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras.models import load_model
 
-from keras import backend as K 
+from keras import backend as K
 
 def plain_conv_block(inputs, num_filters = 16, alpha = 1, kernel_size = 2, pooling = None, block_id=1, activation = 'relu'):
 
@@ -182,7 +182,7 @@ def get_model(type, n_classes, n_slots, audio_params):
 def tflite_convert(model, model_path, audio_params):
 
     if not model:
-        model = tf.keras.models.load_model(model_name)
+        model = tf.keras.models.load_model(model_path)
 
     def representative_dataset():
         for i in range(len(test_data)):
