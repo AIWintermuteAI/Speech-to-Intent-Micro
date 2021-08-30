@@ -150,7 +150,7 @@ def res_Conv2D(x):
     ]
 
     for i, layer in enumerate(layers):
-        x = inverted_res_block(x, num_filters = layer[0], expansion = 2, kernel_size = layer[1], stride = layer[2], activation = 'relu', block_id=i)
+        x = inverted_res_block(x, num_filters = layer[0], expansion = 3, kernel_size = layer[1], stride = layer[2], activation = 'relu', block_id=i)
 
     return x
 

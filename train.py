@@ -152,7 +152,7 @@ if __name__ == "__main__":
         help='path to validation data .csv file')
 
     argparser.add_argument(
-        '-t',
+        '-m',
         '--model_type',
         default="plain_Conv2D",
         help='type of model to train: plain_Conv2D, DW_Conv2D, res_Conv2D')
@@ -161,17 +161,20 @@ if __name__ == "__main__":
         '-b',
         '--batch_size',
         default=32,
+        type=int,
         help='Batch size for training and validation')
 
     argparser.add_argument(
         '-l',
         '--lr',
         default=1e-3,
+        type=float,
         help='Initial learning rate')
 
     argparser.add_argument(
         '-e',
         '--epochs',
+        type=int,
         default=10,
         help='Number of epochs to train')
 
@@ -183,26 +186,31 @@ if __name__ == "__main__":
 
     argparser.add_argument(
         '--sampling_rate',
+        type=int,
         default=16000,
         help='Audio sampling rate')
 
     argparser.add_argument(
         '--min_freq',
+        type=int,
         default=100,
         help='Spectrogram minimum frequency')
 
     argparser.add_argument(
         '--max_freq',
+        type=int,
         default=8000,
         help='Spectrogram maximum frequency')        
 
     argparser.add_argument(
         '--win_size_ms',
+        type=float,
         default=0.02,
         help='Spectrogram window size') 
 
     argparser.add_argument(
         '--num_cepstral',
+        type=int,
         default=10,
         help='Number of MFCC cepstral coefficients') 
 
