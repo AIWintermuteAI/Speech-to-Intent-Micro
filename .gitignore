@@ -133,7 +133,6 @@ checkpoints/
 
 *.wav
 *.tflite
-*.h
 *.h5
 *.csv
 *.pkl
