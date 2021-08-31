@@ -67,7 +67,18 @@ class DatasetFactory:
         self.locations = set(self.locations | locations)        
         self.vocab = set(self.vocab | vocab)  
         self.query_slots = set(self.objects | self.locations)
-        
+
+    def get_slots_and_intents(self, intent_ids, slot_ids, data):
+
+        slots = []
+        for sentence in zip(data.object, data.location):
+            slots.append(self.get_query_slots(sentence))
+
+        vectorized_slots = list(map(lambda slots: np.array(list(map(lambda slot: slot_ids[slot], slots))), slots))
+        vectorized_intents = list(map(lambda l: np.array([intent_ids[l]]), data.action))
+
+        return vectorized_slots, vectorized_intents
+
     def process_data(self, data):
         
         self.actions = list(self.actions)
@@ -78,10 +89,6 @@ class DatasetFactory:
         
         word_ids, slot_ids, intent_ids = {' ': 0}, {}, {self.actions[i]: i for i in range(0, len(self.actions))}
 
-        slots = []
-        for sentence in zip(data.object, data.location):
-            slots.append(self.get_query_slots(sentence))
-        
         i = 0
         for slot in self.query_slots:
             if slot == 'none':
@@ -107,12 +114,12 @@ class DatasetFactory:
         n_classes = len(ids2intents)
         n_slots = len(ids2slots)
 
-        vectorized_slots = list(map(lambda slots: np.array(list(map(lambda slot: slot_ids[slot], slots))), slots))
-        vectorized_intents = list(map(lambda l: np.array([intent_ids[l]]), data.action))
+        vectorized_slots, vectorized_intents = self.get_slots_and_intents(intent_ids, slot_ids, data)
 
         filepaths = data['path'].to_numpy()
 
-        return ids2intents, ids2slots, vectorized_slots, vectorized_intents, filepaths        
+        return slot_ids, intent_ids, ids2intents, ids2slots, vectorized_slots, vectorized_intents, filepaths        
+    
     
 def save_obj(obj, name):
     with open('data/pkl/'+ name + '.pkl', 'wb') as f:
@@ -267,11 +274,11 @@ class DataGenerator(Sequence):
             if self.aug_pipeline:
                 audio = self.aug_pipeline(audio, sample_rate)
                 
-                if DEBUG:
-                    new_filename = os.path.join('samples', os.path.basename(batch_item.split('.')[0]+'aug.wav'))
-                    print("Augmented: ", new_filename)
-                    print("--------------")
-                    sf.write(new_filename, audio, sample_rate,  subtype='PCM_16')
+            if DEBUG:
+                new_filename = os.path.join('samples', os.path.basename(batch_item.split('.')[0]+'aug.wav'))
+                print("Sample: ", new_filename)
+                print("--------------")
+                sf.write(new_filename, audio, sample_rate,  subtype='PCM_16')
                 
             output = generate_features(self.vis, audio, self.audio_params["sampling_rate"], 
                                           self.audio_params["win_size_ms"], self.audio_params["win_increase_ms"], 32, 

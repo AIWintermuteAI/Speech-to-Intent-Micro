@@ -37,34 +37,45 @@ def main(args):
         dataset_processor.add_corpora(train_data)
         dataset_processor.add_corpora(valid_data)
         
-        ids2intents, ids2slots, vectorized_slots_train, vectorized_intents_train, filepaths_train = dataset_processor.process_data(train_data)
-        _ids2intents, _ids2slots, vectorized_slots_valid, vectorized_intents_valid, filepaths_valid = dataset_processor.process_data(valid_data)
+        slot_ids, intent_ids, ids2intents, ids2slots, vectorized_slots_train, vectorized_intents_train, filepaths_train = dataset_processor.process_data(train_data)
+        _slot_ids, _intent_ids, _ids2intents, _ids2slots, vectorized_slots_valid, vectorized_intents_valid, filepaths_valid = dataset_processor.process_data(valid_data)
 
         assert ids2intents == _ids2intents
         assert ids2slots == _ids2slots
         
         save_obj(ids2intents, 'ids2intents')
         save_obj(ids2slots, 'ids2slots')
-        
+
+        save_obj(slot_ids, 'slot_ids')
+        save_obj(intent_ids, 'intent_ids')
+
         save_obj(vectorized_slots_train, 'vectorized_slots_train')
         save_obj(vectorized_intents_train, 'vectorized_intents_train')
         
         save_obj(vectorized_slots_valid, 'vectorized_slots_valid')
         save_obj(vectorized_intents_valid, 'vectorized_intents_valid')
-        
+
     else:
+
+        dataset_processor = DatasetFactory()
 
         filepaths_train = train_data['path'].to_numpy()
         filepaths_valid = valid_data['path'].to_numpy()
         
         ids2intents = load_obj('ids2intents')
         ids2slots = load_obj('ids2slots')
+
+        slot_ids = load_obj('slot_ids')
+        intent_ids = load_obj('intent_ids')
+
+        ids2slots, vectorized_slots_train, vectorized_intents_train = dataset_processor.get_slots_and_intents(intent_ids, slot_ids, train_data)
+        vectorized_slots_valid, vectorized_intents_valid = dataset_processor.get_slots_and_intents(intent_ids, slot_ids, valid_data)
+
+        #vectorized_slots_train = load_obj('vectorized_slots_train')
+        #vectorized_intents_train = load_obj('vectorized_intents_train')
         
-        vectorized_slots_train = load_obj('vectorized_slots_train')
-        vectorized_intents_train = load_obj('vectorized_intents_train')
-        
-        vectorized_slots_valid = load_obj('vectorized_slots_valid')
-        vectorized_intents_valid = load_obj('vectorized_intents_valid')
+        #vectorized_slots_valid = load_obj('vectorized_slots_valid')
+        #vectorized_intents_valid = load_obj('vectorized_intents_valid')
         
     logging.info("\nIDs to Intents: {} \nIDs to Slots: {}".format(str(ids2intents.values()).replace("'", "\""), 
                                                                 str(ids2slots.values()).replace("'", "\"")))
@@ -72,7 +83,6 @@ def main(args):
     n_classes = len(ids2intents)
     n_slots = len(ids2slots)    
 
-        
     training_generator = DataGenerator([filepaths_train, vectorized_intents_train, vectorized_slots_train], 
                                     [n_classes, n_slots], audio_params, batch_size = batch_size,
                                     shuffle=True, to_fit=True, augment = True)
@@ -128,7 +138,11 @@ def main(args):
     except KeyboardInterrupt:
         raise
 
-    tflite_filename = tflite_convert(model, model_name, audio_params)
+    calibration_generator = DataGenerator([filepaths_valid, vectorized_intents_valid, vectorized_slots_valid], 
+                                        [n_classes,n_slots], audio_params, batch_size = 1,
+                                        shuffle=False, to_fit=True, augment = False)
+
+    tflite_filename = tflite_convert(model, model_name, calibration_generator)
     tflite_micro_convert(tflite_filename)
 
 if __name__ == "__main__":
@@ -137,7 +151,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     argparser = argparse.ArgumentParser(
-        description='Train and validate YOLO_v2 model on any dataset')
+        description='Train and validate Speech to Intent model on FLUENT Speech Commands-like dataset')
 
     argparser.add_argument(
         '-t',
@@ -215,4 +229,5 @@ if __name__ == "__main__":
         help='Number of MFCC cepstral coefficients') 
 
     args = argparser.parse_args()
+    print(args)
     main(args)

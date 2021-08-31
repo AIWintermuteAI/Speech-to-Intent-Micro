@@ -1,4 +1,4 @@
-from re import X
+import numpy as np
 import os
 import tensorflow as tf
 
@@ -24,7 +24,7 @@ def plain_conv_block(inputs, num_filters = 16, alpha = 1, kernel_size = 2, pooli
     return x
 
 def dw_conv_block(inputs, num_filters, alpha, depth_multiplier=1, strides=(1, 1), block_id=1, activation = 'relu'):
-    channel_axis = 1
+    channel_axis = 3
     pointwise_conv_filters = int(num_filters * alpha)
 
     if strides == (1, 1):
@@ -32,14 +32,13 @@ def dw_conv_block(inputs, num_filters, alpha, depth_multiplier=1, strides=(1, 1)
     else:
         x = ZeroPadding2D(((0, 1), (0, 1)),
                                  name='conv_pad_%d' % block_id)(inputs)
-    x = DepthwiseConv2D((3, 3),
+    x = DepthwiseConv2D((2, 2),
                                padding='same' if strides == (1, 1) else 'valid',
                                depth_multiplier=depth_multiplier,
-                               strides=strides,
+                               #strides=strides,
                                use_bias=False,
                                name='conv_dw_%d' % block_id)(x)
-    x = BatchNormalization(
-        axis=channel_axis, name='conv_dw_%d_bn' % block_id)(x)
+    x = BatchNormalization(name='conv_dw_%d_bn' % block_id)(x)
     x = Activation(activation, name='conv_dw_%d_act' % block_id)(x)
 
     x = Conv2D(pointwise_conv_filters, (1, 1),
@@ -47,10 +46,11 @@ def dw_conv_block(inputs, num_filters, alpha, depth_multiplier=1, strides=(1, 1)
                       use_bias=False,
                       strides=(1, 1),
                       name='conv_pw_%d' % block_id)(x)
-    x = BatchNormalization(axis=channel_axis,
-                                  name='conv_pw_%d_bn' % block_id)(x)
-
+    x = BatchNormalization(name='conv_pw_%d_bn' % block_id)(x)
     x = Activation(activation, name='conv_pw_%d_act' % block_id)(x)
+
+    if strides:
+        x = MaxPooling2D(pool_size = 2, name='conv_%d_pool' % block_id)(x)
 
     return x
 
@@ -127,15 +127,15 @@ def DW_Conv2D(x):
 
     layers = [
         [16, 2, 2],
-        [16, 2, 1],
+        [16, 2, 2],
         [32, 3, 2],
-        [128, 2, 1]
+        [128, 2, None]
     ]
 
-    x = plain_conv_block(x, num_filters = 16, alpha = 2, kernel_size = 2, pooling = None, block_id=0, activation = 'relu')
+    x = plain_conv_block(x, num_filters = 16, alpha = 1, kernel_size = 2, pooling = None, block_id=0, activation = 'relu')
 
     for i, layer in enumerate(layers):
-        x = dw_conv_block(x, layer[0], 1, depth_multiplier=1, strides=layer[2], block_id=i, activation = 'relu')
+        x = dw_conv_block(x, layer[0], 2, depth_multiplier=1, strides=layer[2], block_id=i, activation = 'relu')
 
     return x
 
@@ -178,24 +178,14 @@ def get_model(type, n_classes, n_slots, audio_params):
     return model
 
 
-
-def tflite_convert(model, model_path, audio_params):
+def tflite_convert(model, model_path, calibration_generator):
 
     if not model:
         model = tf.keras.models.load_model(model_path)
 
     def representative_dataset():
-        for i in range(len(test_data)):
-            wav_file = os.path.join(*prefix, test_data['path'][i])
-            audio, sample_rate = librosa.load(wav_file, sr=16000, res_type='kaiser_best')
-            audio = librosa.util.fix_length(audio, 16000*3)
-            features = generate_features(False, audio, SAMPLING_RATE, 
-                            WIN_SIZE_MS, WIN_INCREASE_MS, 32, 
-                            NUM_CEPSTRAL, MIN_FREQ, MAX_FREQ)
-            
-            features = features['features']
-            X = np.expand_dims(features, axis = -1)
-            X = np.expand_dims(X, axis = 0)
+        for i in range(min(len(calibration_generator), 200)):
+            X = calibration_generator.__getitem__(i)
             yield [X.astype(np.float32)]
 
     model.input.set_shape(1 + model.input.shape[1:])
