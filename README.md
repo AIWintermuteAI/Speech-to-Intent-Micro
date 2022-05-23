@@ -40,7 +40,7 @@ The reference plain Convolutional 2D model trained on FLUENT Speech commands dat
 
 Download FLUENT Speech commands dataset from https://www.kaggle.com/tommyngx/fluent-speech-corpus. Unzip the archive and place the .csv files to data/csv/ directory, speakers folder to data/wavs folder. 
 
-If you are using your own dataset, make sure it follows the FLUENT Speech commands dataset convention - nin particular, that "path", "transcription", "action", "object", "location" columns are present in dataset .csv file. 
+If you are using your own dataset, make sure it follows the FLUENT Speech commands dataset convention - in particular, that "path", "transcription", "action", "object", "location" columns are present in dataset .csv file. 
 
 Then you can run the training either with interactive notebook located in jupyter_notebooks/speech_to_intent_tf_keras.ipynb or by executing train.py file inside repository. 
 

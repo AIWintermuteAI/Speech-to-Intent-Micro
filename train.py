@@ -68,7 +68,7 @@ def main(args):
         slot_ids = load_obj('slot_ids')
         intent_ids = load_obj('intent_ids')
 
-        ids2slots, vectorized_slots_train, vectorized_intents_train = dataset_processor.get_slots_and_intents(intent_ids, slot_ids, train_data)
+        vectorized_slots_train, vectorized_intents_train = dataset_processor.get_slots_and_intents(intent_ids, slot_ids, train_data)
         vectorized_slots_valid, vectorized_intents_valid = dataset_processor.get_slots_and_intents(intent_ids, slot_ids, valid_data)
 
         #vectorized_slots_train = load_obj('vectorized_slots_train')
@@ -120,7 +120,7 @@ def main(args):
     model.summary()
 
     output_path = os.path.join("checkpoints", datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
-    os.mkdir(output_path)
+    os.makedirs(output_path)
     print("Project folder: {}".format(output_path))
 
     model_name = os.path.join(output_path, "slu_model.h5")

@@ -24,7 +24,7 @@ class DatasetFactory:
     
     def get_query_slots(self, sentence):
 
-        slots = [sentence[0], sentence[1]]
+        slots = [sentence[0].lower(), sentence[1].lower()]
         return slots      
     
     def get_properties(self, data):
