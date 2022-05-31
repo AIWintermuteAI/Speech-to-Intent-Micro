@@ -134,7 +134,7 @@ def main(args):
         model.fit(training_generator, validation_data = validation_generator,
                 callbacks = my_callbacks, epochs=args.epochs, 
                 workers = 4, max_queue_size = 10,
-                use_multiprocessing = True)
+                use_multiprocessing = False)
     except KeyboardInterrupt:
         raise
 

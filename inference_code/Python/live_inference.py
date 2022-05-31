@@ -110,7 +110,7 @@ class Recorder:
     def predict(self, data):
 
         data = np.array(data).astype(np.float32)
-        data = data.flatten()/32768
+        data = data.flatten()
         #mfcc = librosa.feature.mfcc(data, 16000, n_mfcc=40)
         data = np.expand_dims(data, axis = -1)
         window_size = int(RATE * FRAME_LENGTH)

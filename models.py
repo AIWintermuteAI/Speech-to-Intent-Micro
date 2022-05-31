@@ -11,7 +11,7 @@ from tensorflow.keras.layers import MaxPooling2D, AveragePooling2D
 from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras.models import load_model
 
-from keras import backend as K
+from tensorflow.keras import backend as K
 
 def plain_conv_block(inputs, num_filters = 16, alpha = 1, kernel_size = 2, pooling = None, block_id=1, activation = 'relu'):
 
