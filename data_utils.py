@@ -3,7 +3,7 @@ from tensorflow.keras.utils import Sequence
 import soundfile as sf
 import librosa
 import librosa.display
-from audiomentations import Compose, AddGaussianNoise, AddBackgroundNoise, PitchShift, Shift, ClippingDistortion, Gain, LoudnessNormalization, TimeStretch 
+from audiomentations import Compose, AddGaussianNoise, AddBackgroundNoise, PitchShift, Shift, ClippingDistortion, Gain, LoudnessNormalization, TimeStretch
 from tensorflow.python.ops import gen_audio_ops as contrib_audio
 
 import pickle
@@ -15,18 +15,18 @@ import io, base64, os
 DEBUG = False
 
 class DatasetFactory:
-    
+
     def __init__(self):
         self.actions = set()
         self.objects = set()
         self.locations = set()
         self.vocab = set()
-    
+
     def get_query_slots(self, sentence):
 
         slots = [sentence[0].lower(), sentence[1].lower()]
-        return slots      
-    
+        return slots
+
     def get_properties(self, data):
 
         data["action"] = data['action'].str.lower()
@@ -37,7 +37,7 @@ class DatasetFactory:
         objects = set(data.object.unique())
         locations = set(data.location.unique())
 
-        return actions, objects, locations        
+        return actions, objects, locations
 
     def get_vocab(self, actions, objects, locations, data):
 
@@ -54,18 +54,18 @@ class DatasetFactory:
                 vocab.add(word)
 
         vocab = [s.strip() for s in vocab]
-        
-        return set(vocab)   
-    
+
+        return set(vocab)
+
     def add_corpora(self, data):
-        
+
         actions, objects, locations = self.get_properties(data)
         vocab = self.get_vocab(actions, objects, locations, data)
 
         self.actions = set(self.actions | actions)
         self.objects = set(self.objects | objects)
-        self.locations = set(self.locations | locations)        
-        self.vocab = set(self.vocab | vocab)  
+        self.locations = set(self.locations | locations)
+        self.vocab = set(self.vocab | vocab)
         self.query_slots = set(self.objects | self.locations)
 
     def get_slots_and_intents(self, intent_ids, slot_ids, data):
@@ -80,13 +80,13 @@ class DatasetFactory:
         return vectorized_slots, vectorized_intents
 
     def process_data(self, data):
-        
+
         self.actions = list(self.actions)
         self.objects = list(self.objects)
-        self.locations = list(self.locations)       
+        self.locations = list(self.locations)
         self.vocab = list(self.vocab)
         self.query_slots = list(self.query_slots)
-        
+
         word_ids, slot_ids, intent_ids = {' ': 0}, {}, {self.actions[i]: i for i in range(0, len(self.actions))}
 
         i = 0
@@ -95,14 +95,14 @@ class DatasetFactory:
                 continue
             slot_ids[slot] = i
             i += 1
-            
+
         slot_ids['none'] = i
 
         #convert vocab to dictionary
         start = 1
         for i in range(len(self.vocab)):
             word_ids[self.vocab[i]] = start + i
-        word_ids['unknown'] =  i + 1  
+        word_ids['unknown'] =  i + 1
 
         #create reverse dicts
         ids2words = dict((v, k) for k, v in word_ids.items())
@@ -118,9 +118,9 @@ class DatasetFactory:
 
         filepaths = data['path'].to_numpy()
 
-        return slot_ids, intent_ids, ids2intents, ids2slots, vectorized_slots, vectorized_intents, filepaths        
-    
-    
+        return slot_ids, intent_ids, ids2intents, ids2slots, vectorized_slots, vectorized_intents, filepaths
+
+
 def save_obj(obj, name):
     with open('data/pkl/'+ name + '.pkl', 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
@@ -133,27 +133,27 @@ def load_obj(name):
 ### Sound processing function
 
 def generate_features(draw_graphs, raw_data, sampling_freq,
-                      frame_length, frame_stride, num_filters, 
+                      frame_length, frame_stride, num_filters,
                       num_cepstral, low_frequency, high_frequency):
     graphs = []
-    
+
     raw_data = np.expand_dims(raw_data, axis = -1)
     window_size = int(sampling_freq * frame_length)
     stride = int(sampling_freq * frame_stride)
-    
+
     spectrogram = contrib_audio.audio_spectrogram(
         raw_data,
         window_size=window_size,
         stride=stride,
         magnitude_squared=True)
-    
+
     mfcc = contrib_audio.mfcc(
         spectrogram,
         sampling_freq,
         dct_coefficient_count=num_cepstral,
-        upper_frequency_limit=high_frequency, 
+        upper_frequency_limit=high_frequency,
         lower_frequency_limit=low_frequency)
-    
+
     mfcc = np.squeeze(mfcc)
 
     if draw_graphs:
@@ -192,17 +192,26 @@ def generate_features(draw_graphs, raw_data, sampling_freq,
 
 
 def create_aug_pipeline():
-    
-    aug_pipeline = Compose([
-    AddGaussianNoise(min_amplitude=0.001, max_amplitude=0.015, p=0.1),
-    AddBackgroundNoise(sounds_path="data/wavs/background_noise", p=0.3),
-    ClippingDistortion(p=0.3),
-    PitchShift(min_semitones=-4, max_semitones=4, p=0.2),
-    Shift(min_fraction=-0.5, max_fraction=0.5, p=0.1),
-    Gain(p=0.2),
-    TimeStretch(p=0.05)
-    ])
-    
+    try:
+        aug_pipeline = Compose([
+        AddGaussianNoise(min_amplitude=0.001, max_amplitude=0.015, p=0.1),
+        AddBackgroundNoise(sounds_path="data/wavs/background_noise", p=0.3),
+        ClippingDistortion(p=0.3),
+        PitchShift(min_semitones=-4, max_semitones=4, p=0.2),
+        Shift(min_fraction=-0.5, max_fraction=0.5, p=0.1),
+        Gain(p=0.2),
+        TimeStretch(p=0.05)
+        ])
+    except AssertionError:
+        aug_pipeline = Compose([
+        AddGaussianNoise(min_amplitude=0.001, max_amplitude=0.015, p=0.1),
+        ClippingDistortion(p=0.3),
+        PitchShift(min_semitones=-4, max_semitones=4, p=0.2),
+        Shift(min_fraction=-0.5, max_fraction=0.5, p=0.1),
+        Gain(p=0.2),
+        TimeStretch(p=0.05)
+        ])
+        print("\nWARNING: Cannot find background noise sample! Continuing without background noise augmentation.\n")
     return aug_pipeline
 
 class DataGenerator(Sequence):
@@ -216,7 +225,7 @@ class DataGenerator(Sequence):
         self.batch_size = batch_size
         print(self.audio_params)
         self.n_intents, self.n_slots = num_list
-        
+
         self.len = 2
         self.aug_pipeline = None
         if augment:
@@ -239,12 +248,12 @@ class DataGenerator(Sequence):
         """
         # Generate indexes of the batch
         indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
-        
+
         X_batch = [self.entries[0][k] for k in indexes]
-        
+
         Y_intent = [self.entries[1][k] for k in indexes]
         Y_slot = [self.entries[2][k] for k in indexes]
-        
+
         # Generate data
         X = self._generate_X(X_batch)
 
@@ -264,33 +273,33 @@ class DataGenerator(Sequence):
     def _generate_X(self, batch_items):
 
         X = np.zeros(shape = (self.batch_size, 150, self.audio_params['num_cepstral'], 1))
-         
+
         for i, batch_item in enumerate(batch_items):
             prefix = "data"
             wav_file = os.path.join(prefix, batch_item)
             audio, sample_rate = librosa.load(wav_file, sr=16000, res_type='kaiser_best')
             audio = librosa.util.fix_length(audio, 16000*3)
-            
+
             if self.aug_pipeline:
                 audio = self.aug_pipeline(audio, sample_rate)
-                
+
             if DEBUG:
                 new_filename = os.path.join('samples', os.path.basename(batch_item.split('.')[0]+'aug.wav'))
                 print("Sample: ", new_filename)
                 print("--------------")
                 sf.write(new_filename, audio, sample_rate,  subtype='PCM_16')
-                
-            output = generate_features(self.vis, audio, self.audio_params["sampling_rate"], 
-                                          self.audio_params["win_size_ms"], self.audio_params["win_increase_ms"], 32, 
+
+            output = generate_features(self.vis, audio, self.audio_params["sampling_rate"],
+                                          self.audio_params["win_size_ms"], self.audio_params["win_increase_ms"], 32,
                                           self.audio_params['num_cepstral'], self.audio_params['min_freq'], self.audio_params['max_freq'])
 
             features = output['features']
             X[i, ] = np.expand_dims(features, axis = -1)
         return X
-    
+
     def _generate_y(self, intents, slots):
         intent_y = np.empty((self.batch_size, self.n_intents), dtype=int)
-        slot_y = np.empty((self.batch_size, self.len, self.n_slots), dtype=int)      
+        slot_y = np.empty((self.batch_size, self.len, self.n_slots), dtype=int)
 
         # Generate data
         for i, batch_item in enumerate(intents):
@@ -298,6 +307,6 @@ class DataGenerator(Sequence):
             slot = slots[i]
             intent_y[i,] = np.eye(self.n_intents)[intent]
             slot_y[i,] = np.eye(self.n_slots)[slot][np.newaxis, :]
-        
+
         return [intent_y, slot_y]
 

@@ -185,11 +185,11 @@ def tflite_convert(model, model_path, calibration_generator):
 
     def representative_dataset():
         for i in range(min(len(calibration_generator), 200)):
-            X = calibration_generator.__getitem__(i)
+            X, _ = calibration_generator.__getitem__(i)
             yield [X.astype(np.float32)]
 
     model.input.set_shape(1 + model.input.shape[1:])
-                
+
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     converter.experimental_new_converter = True
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
@@ -197,7 +197,7 @@ def tflite_convert(model, model_path, calibration_generator):
     converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
     converter.target_spec.supported_types = [tf.int8]
     converter.inference_type = tf.int8
-    converter.inference_input_type = tf.int8 
+    converter.inference_input_type = tf.int8
     converter.inference_output_type = tf.int8
     tflite_quant_model = converter.convert()
 
